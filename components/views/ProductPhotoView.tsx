@@ -68,7 +68,7 @@ const ProductPhotoView: React.FC<ProductPhotoViewProps> = ({ onReEdit, onCreateV
   const [creativeState, setCreativeState] = useState<CreativeDirectionState>(getInitialCreativeDirectionState());
   const [customPrompt, setCustomPrompt] = useState('');
   const [numberOfImages, setNumberOfImages] = useState(1);
-  const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9'>('1:1');
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9'>('9:16');
   const [imageUploadKey, setImageUploadKey] = useState(Date.now());
   const [progress, setProgress] = useState(0);
   
@@ -238,7 +238,7 @@ const ProductPhotoView: React.FC<ProductPhotoViewProps> = ({ onReEdit, onCreateV
     setCreativeState(getInitialCreativeDirectionState());
     setCustomPrompt('');
     setNumberOfImages(1);
-    setAspectRatio('1:1');
+    setAspectRatio('9:16');
     setImageUploadKey(Date.now());
     setProgress(0);
     sessionStorage.removeItem(SESSION_KEY);
@@ -295,8 +295,8 @@ const ProductPhotoView: React.FC<ProductPhotoViewProps> = ({ onReEdit, onCreateV
                 <div>
                     <label htmlFor="aspect-ratio-select" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{T.aspectRatio}</label>
                     <select id="aspect-ratio-select" value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as any)} className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3 text-neutral-800 dark:text-neutral-300 focus:ring-2 focus:ring-primary-500 focus:outline-none transition">
-                        <option value="1:1">Square (1:1)</option>
                         <option value="9:16">Portrait (9:16)</option>
+                        <option value="1:1">Square (1:1)</option>
                         <option value="16:9">Landscape (16:9)</option>
                     </select>
                 </div>

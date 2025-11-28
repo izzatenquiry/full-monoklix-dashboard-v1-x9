@@ -71,7 +71,7 @@ const ImageGenerationView: React.FC<ImageGenerationViewProps> = ({ onCreateVideo
   const [progress, setProgress] = useState(0);
 
   const [negativePrompt, setNegativePrompt] = useState('');
-  const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9'>('1:1');
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9'>('9:16');
   const [creativeState, setCreativeState] = useState<CreativeDirectionState>(getInitialCreativeDirectionState());
 
   const isEditing = referenceImages.length > 0;
@@ -345,6 +345,7 @@ const ImageGenerationView: React.FC<ImageGenerationViewProps> = ({ onCreateVideo
     setNegativePrompt('');
     setProgress(0);
     setStatusMessage('');
+    setAspectRatio('9:16');
     setCreativeState(getInitialCreativeDirectionState());
     sessionStorage.removeItem(SESSION_KEY);
   }, []);
@@ -406,8 +407,8 @@ const ImageGenerationView: React.FC<ImageGenerationViewProps> = ({ onCreateVideo
         <div className="grid grid-cols-2 gap-4">
             <select value={numberOfImages} onChange={(e) => setNumberOfImages(parseInt(e.target.value, 10))} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none">{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} Image{n > 1 ? 's' : ''}</option>)}</select>
             <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as any)} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none transition">
-                <option value="1:1">Square (1:1)</option>
                 <option value="9:16">Portrait (9:16)</option>
+                <option value="1:1">Square (1:1)</option>
                 <option value="16:9">Landscape (16:9)</option>
             </select>
         </div>
