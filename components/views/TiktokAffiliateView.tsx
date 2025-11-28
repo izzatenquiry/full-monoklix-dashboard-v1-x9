@@ -106,7 +106,7 @@ const TiktokAffiliateView: React.FC<TiktokAffiliateViewProps> = ({ onReEdit, onC
     
     const [customPrompt, setCustomPrompt] = useState('');
     const [numberOfImages, setNumberOfImages] = useState(1);
-    const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9' | '3:4' | '4:3'>('9:16');
+    const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9'>('9:16');
     const [productImageUploadKey, setProductImageUploadKey] = useState(Date.now());
     const [faceImageUploadKey, setFaceImageUploadKey] = useState(Date.now() + 1);
     const [progress, setProgress] = useState(0);
@@ -355,8 +355,6 @@ const TiktokAffiliateView: React.FC<TiktokAffiliateViewProps> = ({ onReEdit, onC
                             <option value="9:16">Portrait (9:16)</option>
                             <option value="1:1">Square (1:1)</option>
                             <option value="16:9">Landscape (16:9)</option>
-                            <option value="3:4">Portrait (3:4)</option>
-                            <option value="4:3">Landscape (4:3)</option>
                         </select>
                     </div>
                 </div>

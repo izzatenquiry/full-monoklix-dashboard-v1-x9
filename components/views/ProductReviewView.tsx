@@ -1032,7 +1032,7 @@ const ProductReviewView: React.FC<ProductReviewViewProps> = ({ onReEdit, onCreat
         <div className="mb-6 p-4 border border-neutral-200 dark:border-neutral-700 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">Video Generation Settings</h3>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                 <div><label className="block text-sm font-medium mb-1">Aspect Ratio</label><select value={videoAspectRatio} onChange={e=>setVideoAspectRatio(e.target.value)} className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-300 dark:border-neutral-700 rounded-lg p-2 text-sm">{["9:16", "16:9", "1:1", "4:3", "3:4"].map(o=><option key={o}>{o}</option>)}</select></div>
+                 <div><label className="block text-sm font-medium mb-1">Aspect Ratio</label><select value={videoAspectRatio} onChange={e=>setVideoAspectRatio(e.target.value)} className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-300 dark:border-neutral-700 rounded-lg p-2 text-sm">{["9:16"].map(o=><option key={o}>{o}</option>)}</select></div>
                  <div><label className="block text-sm font-medium mb-1">Resolution</label><select value={videoResolution} onChange={e=>setVideoResolution(e.target.value)} className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-300 dark:border-neutral-700 rounded-lg p-2 text-sm">{["720p", "1080p"].map(o=><option key={o}>{o}</option>)}</select></div>
                  <div>
                     <label className="block text-sm font-medium mb-1">Voiceover Language</label>

@@ -247,7 +247,7 @@ export interface CreativeDirectionState {
   pose: string;
   creativityLevel: number;
   // FIX: Add aspectRatio to the creative direction state.
-  aspectRatio: '1:1' | '9:16' | '16:9' | '3:4' | '4:3';
+  aspectRatio: '1:1' | '9:16' | '16:9';
 }
 
 // A function to get the initial state

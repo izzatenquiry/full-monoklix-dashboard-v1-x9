@@ -71,7 +71,7 @@ const ImageGenerationView: React.FC<ImageGenerationViewProps> = ({ onCreateVideo
   const [progress, setProgress] = useState(0);
 
   const [negativePrompt, setNegativePrompt] = useState('');
-  const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9' | '3:4' | '4:3'>('1:1');
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16' | '16:9'>('1:1');
   const [creativeState, setCreativeState] = useState<CreativeDirectionState>(getInitialCreativeDirectionState());
 
   const isEditing = referenceImages.length > 0;
@@ -409,8 +409,6 @@ const ImageGenerationView: React.FC<ImageGenerationViewProps> = ({ onCreateVideo
                 <option value="1:1">Square (1:1)</option>
                 <option value="9:16">Portrait (9:16)</option>
                 <option value="16:9">Landscape (16:9)</option>
-                <option value="3:4">Portrait (3:4)</option>
-                <option value="4:3">Landscape (4:3)</option>
             </select>
         </div>
       </div>

@@ -54,6 +54,11 @@ const moodOptions = [
 const languages = ["English", "Bahasa Malaysia", "Chinese"];
 const voiceActorOptions = ["Male", "Female", "Mix Actor"];
 
+const musicStyleOptions = [
+    'Pop', 'Ballad', 'Rock', 'Jazz', 'Folk', 'Kids Song',
+    'Rap', 'Traditional Malay'
+];
+
 
 const SESSION_KEY = 'videoGenerationState';
 
@@ -83,9 +88,13 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
 
   const [includeCaptions, setIncludeCaptions] = useState<'Yes' | 'No'>('No');
   const [includeVoiceover, setIncludeVoiceover] = useState<'Yes' | 'No'>('No');
+  
+  // Audio Settings
+  const [voiceoverMode, setVoiceoverMode] = useState<'speak' | 'sing'>('speak');
   const [voiceoverLanguage, setVoiceoverLanguage] = useState('Bahasa Malaysia');
   const [voiceoverMood, setVoiceoverMood] = useState('Energetic');
   const [voiceoverActor, setVoiceoverActor] = useState('Male');
+  const [musicStyle, setMusicStyle] = useState('Pop');
 
 
   const model = MODELS.videoGenerationDefault;
@@ -95,7 +104,8 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
     prompt, negativePrompt, dialogue, dialogueAudio,
     creativeState,
     referenceImage, previewUrl, resolution, aspectRatio, 
-    includeCaptions, includeVoiceover, voiceoverLanguage, voiceoverMood, voiceoverActor
+    includeCaptions, includeVoiceover, voiceoverLanguage, voiceoverMood, voiceoverActor,
+    voiceoverMode, musicStyle
   };
 
   useEffect(() => {
@@ -118,6 +128,8 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
                 if (key === 'voiceoverLanguage') setVoiceoverLanguage(state[key]);
                 if (key === 'voiceoverMood') setVoiceoverMood(state[key]);
                 if (key === 'voiceoverActor') setVoiceoverActor(state[key]);
+                if (key === 'voiceoverMode') setVoiceoverMode(state[key]);
+                if (key === 'musicStyle') setMusicStyle(state[key]);
             });
         }
     } catch (e) { console.error("Failed to load state from session storage", e); }
@@ -132,7 +144,8 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
     prompt, negativePrompt, dialogue, dialogueAudio,
     creativeState,
     referenceImage, previewUrl, resolution, aspectRatio,
-    includeCaptions, includeVoiceover, voiceoverLanguage, voiceoverMood, voiceoverActor
+    includeCaptions, includeVoiceover, voiceoverLanguage, voiceoverMood, voiceoverActor,
+    voiceoverMode, musicStyle
   ]);
 
   const loadingMessages = [
@@ -294,10 +307,29 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
       // Audio
       if (includeVoiceover === 'Yes' && dialogueAudio.trim() && isVeo3) {
           promptLines.push(isMalay ? '🔊 AUDIO (DIALOGUE):' : '🔊 AUDIO (DIALOGUE):');
-          promptLines.push(isMalay ? `Use only the following dialogue in Malaysian Malay:` : `Use only the following dialogue in ${targetLanguage}:`);
+          
+          if (voiceoverMode === 'sing') {
+               promptLines.push(isMalay
+                  ? `Nyanyikan lirik berikut dalam gaya muzik ${musicStyle}:`
+                  : `Sing the following lyrics in a ${musicStyle} music style:`);
+          } else {
+               promptLines.push(isMalay
+                  ? `Gunakan hanya dialog berikut dalam Bahasa Melayu Malaysia:`
+                  : `Use only the following dialogue in ${targetLanguage}:`);
+          }
+          
           promptLines.push(`"${dialogueAudio.trim()}"`);
           promptLines.push(isMalay ? 'ARAHAN PENTING: Sebutkan skrip ini dengan lengkap, perkataan demi perkataan. Jangan ubah atau ringkaskan ayat.' : 'CRITICAL INSTRUCTION: Speak this script completely, word for word. Do not change or shorten the sentences.');
-          promptLines.push(isMalay ? `Pelakon suara: ${voiceoverActor}. Nada suara: ${voiceoverMood}.` : `Voice actor preference: ${voiceoverActor}. Voice tone: ${voiceoverMood}.`);
+          
+          if (voiceoverMode === 'speak') {
+               promptLines.push(isMalay 
+                  ? `Pelakon suara: ${voiceoverActor}. Nada suara: ${voiceoverMood}.` 
+                  : `Voice actor preference: ${voiceoverActor}. Voice tone: ${voiceoverMood}.`);
+          } else {
+               promptLines.push(isMalay 
+                  ? `Pelakon suara: ${voiceoverActor}.` 
+                  : `Voice actor preference: ${voiceoverActor}.`);
+          }
           promptLines.push('\n---');
       }
   
@@ -347,7 +379,7 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
           setIsLoading(false);
           setStatusMessage('');
       }
-  }, [prompt, creativeState, dialogue, dialogueAudio, isVeo3, referenceImage, model, aspectRatio, resolution, negativePrompt, voiceoverLanguage, voiceoverMood, currentUser, onUserUpdate, videoUrl, includeCaptions, includeVoiceover, voiceoverActor]);
+  }, [prompt, creativeState, dialogue, dialogueAudio, isVeo3, referenceImage, model, aspectRatio, resolution, negativePrompt, voiceoverLanguage, voiceoverMood, currentUser, onUserUpdate, videoUrl, includeCaptions, includeVoiceover, voiceoverActor, voiceoverMode, musicStyle]);
 
   const handleDownloadVideo = async () => {
     if (!videoUrl || !videoFilename) return;
@@ -398,6 +430,8 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
     setVoiceoverLanguage('English');
     setVoiceoverMood('Normal');
     setVoiceoverActor('Male');
+    setVoiceoverMode('speak');
+    setMusicStyle('Pop');
     setImageUploadKey(Date.now());
     setStatusMessage('');
     sessionStorage.removeItem(SESSION_KEY);
@@ -416,7 +450,7 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
                 <div>
                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Aspect Ratio</label>
                      <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none transition">
-                        {["9:16", "16:9", "1:1", "4:3", "3:4"].map(ar => <option key={ar} value={ar}>{ar}</option>)}
+                        {["9:16", "3:4"].map(ar => <option key={ar} value={ar}>{ar}</option>)}
                     </select>
                 </div>
                 <div>
@@ -503,12 +537,44 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
                                     </select>
                                 </div>
                              </div>
-                             <div>
-                                 <label htmlFor="voiceover-mood" className="block text-sm font-medium mb-1">Voiceover Mood</label>
-                                 <select id="voiceover-mood" value={voiceoverMood} onChange={(e) => setVoiceoverMood(e.target.value)} className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                                     {moodOptions.map(mood => <option key={mood} value={mood}>{mood}</option>)}
-                                 </select>
+                             
+                             {/* Voiceover Mode Selection */}
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Voiceover Mode</label>
+                                    <div className="flex bg-white dark:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-700 p-1">
+                                        <button
+                                            onClick={() => setVoiceoverMode('speak')}
+                                            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${voiceoverMode === 'speak' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+                                        >
+                                            Speak
+                                        </button>
+                                        <button
+                                            onClick={() => setVoiceoverMode('sing')}
+                                            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${voiceoverMode === 'sing' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+                                        >
+                                            Sing
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {voiceoverMode === 'speak' ? (
+                                     <div>
+                                         <label htmlFor="voiceover-mood" className="block text-sm font-medium mb-1">Voiceover Mood</label>
+                                         <select id="voiceover-mood" value={voiceoverMood} onChange={(e) => setVoiceoverMood(e.target.value)} className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                             {moodOptions.map(mood => <option key={mood} value={mood}>{mood}</option>)}
+                                         </select>
+                                     </div>
+                                ) : (
+                                     <div>
+                                         <label htmlFor="music-style" className="block text-sm font-medium mb-1">Music Style</label>
+                                         <select id="music-style" value={musicStyle} onChange={(e) => setMusicStyle(e.target.value)} className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                             {musicStyleOptions.map(style => <option key={style} value={style}>{style}</option>)}
+                                         </select>
+                                     </div>
+                                )}
                              </div>
+
                              <div>
                                 <label htmlFor="spoken-dialogue" className="block text-sm font-medium mb-1">Spoken Dialogue Script</label>
                                 <textarea id="spoken-dialogue" value={dialogueAudio} onChange={e => setDialogueAudio(e.target.value)} placeholder="Enter the exact dialogue for the AI to speak." rows={3} className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none" />
