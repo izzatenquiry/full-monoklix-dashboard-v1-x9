@@ -467,7 +467,7 @@ const ImageGenerationView: React.FC<ImageGenerationViewProps> = ({ onCreateVideo
                         return (
                             <div className="text-center text-red-500 dark:text-red-400 p-4">
                                 <AlertTriangleIcon className="w-12 h-12 mx-auto mb-4" />
-                                <p className="font-semibold">Generation Failed</p>
+                                <p className="font-semibold">Generation Failed - Please Check Image & Prompt.</p>
                                 <p className="text-sm mt-2 max-w-md mx-auto text-neutral-500 dark:text-neutral-400">All attempts failed. Please try again.</p>
                                 <button
                                     onClick={() => handleRetry(selectedImageIndex)}

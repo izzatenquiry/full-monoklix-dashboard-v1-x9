@@ -423,7 +423,7 @@ const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({ currentUser, 
                     })
                 });
                 const genData = await safeJson(genRes);
-                if (!genRes.ok) throw new Error(genData.error?.message || 'Generation failed');
+                if (!genRes.ok) throw new Error(genData.error?.message || 'Generation failed - Please Check Image & Prompt.');
                 let operations = genData.operations;
                 if (!operations || operations.length === 0) throw new Error('No operations returned');
                 
