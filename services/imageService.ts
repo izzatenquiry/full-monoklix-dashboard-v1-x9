@@ -1,6 +1,8 @@
+
 /**
  * Crop image to target aspect ratio (9:16 for portrait, 16:9 for landscape)
- * Uses center crop to maintain focus on main subject
+ * Uses center crop to maintain focus on main subject.
+ * Also resizes the image to a safe maximum dimension to prevent memory crashes on mobile.
  */
 export const cropImageToAspectRatio = async (
   imageBase64: string,
@@ -25,7 +27,7 @@ export const cropImageToAspectRatio = async (
       let cropWidth = width;
       let cropHeight = height;
 
-      // Calculate target ratio
+      // 1. Calculate Crop Dimensions
       const targetRatio = targetAspectRatio === '16:9' ? 16 / 9 : 9 / 16;
       const imgRatio = width / height;
       let didCrop = false;
@@ -48,33 +50,56 @@ export const cropImageToAspectRatio = async (
         }
       }
 
-      // Set canvas size to cropped dimensions
-      canvas.width = cropWidth;
-      canvas.height = cropHeight;
+      // 2. Calculate Scale Factor for Safe Mobile Usage
+      // Mobile browsers often crash with canvases larger than 4096px or high memory usage.
+      // 1536px is optimal for AI models (Imagen/Veo) without losing perceptible quality.
+      const MAX_DIMENSION = 1536;
+      let finalWidth = cropWidth;
+      let finalHeight = cropHeight;
+      let didResize = false;
 
-      // Fill with white background (in case of transparency)
+      if (cropWidth > MAX_DIMENSION || cropHeight > MAX_DIMENSION) {
+          const scale = Math.min(MAX_DIMENSION / cropWidth, MAX_DIMENSION / cropHeight);
+          finalWidth = Math.round(cropWidth * scale);
+          finalHeight = Math.round(cropHeight * scale);
+          didResize = true;
+      }
+
+      // Set canvas size to final (possibly resized) dimensions
+      canvas.width = finalWidth;
+      canvas.height = finalHeight;
+
+      // Fill with white background (safe fallback for transparency)
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, cropWidth, cropHeight);
+      ctx.fillRect(0, 0, finalWidth, finalHeight);
 
-      // Draw cropped image
-      ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+      // Draw cropped AND scaled image
+      // drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+      ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, finalWidth, finalHeight);
 
-      // Convert to PNG with high quality
-      const pngDataUrl = canvas.toDataURL('image/png', 1.0);
+      // Convert to PNG
+      // Using 0.9 quality for JPEG might be safer for size, but PNG is required for transparency (if any).
+      // We stick to PNG but the resizing above solves the memory issue.
+      const pngDataUrl = canvas.toDataURL('image/png');
 
       // Extract base64 (remove data:image/png;base64, prefix)
       const base64 = pngDataUrl.split(',')[1];
 
-      if (didCrop) {
-        console.log(`Image cropped: ${width}x${height} -> ${cropWidth}x${cropHeight} (${targetAspectRatio})`);
+      // Build log message
+      const actions = [];
+      if (didCrop) actions.push(`Cropped to ${targetAspectRatio}`);
+      if (didResize) actions.push(`Resized to ${finalWidth}x${finalHeight}`);
+      
+      if (actions.length > 0) {
+        console.log(`Image processed: ${width}x${height} -> ${finalWidth}x${finalHeight} (${actions.join(', ')})`);
       } else {
-        console.log(`Image processed: ${cropWidth}x${cropHeight}`);
+        console.log(`Image processed: ${width}x${height} (No changes needed)`);
       }
       
       resolve(base64);
     };
 
-    img.onerror = () => reject(new Error('Failed to load image for cropping'));
+    img.onerror = () => reject(new Error('Failed to load image for processing'));
 
     // Handle both raw base64 and data URL formats
     img.src = imageBase64.startsWith('data:')
