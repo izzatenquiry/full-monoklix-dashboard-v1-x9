@@ -90,6 +90,7 @@ export interface Database {
           personal_auth_token: string | null
           proxy_server: string | null
           batch_02: string | null
+          last_device: string | null
         }
         Insert: { // The data you can insert
           id?: string // id is auto-generated
@@ -113,6 +114,7 @@ export interface Database {
           personal_auth_token?: string | null
           proxy_server?: string | null
           batch_02?: string | null
+          last_device?: string | null
         }
         Update: { // The data you can update
           full_name?: string | null
@@ -134,6 +136,7 @@ export interface Database {
           personal_auth_token?: string | null
           proxy_server?: string | null
           batch_02?: string | null
+          last_device?: string | null
         }
         // FIX: Added Relationships array to fix Supabase type inference issues, resolving 'never' types.
         Relationships: []

@@ -60,6 +60,7 @@ const mapProfileToUser = (
     personalAuthToken: profile.personal_auth_token || undefined,
     proxyServer: profile.proxy_server || undefined,
     batch_02: profile.batch_02 || undefined,
+    lastDevice: profile.last_device || undefined,
   };
 };
 
@@ -415,7 +416,7 @@ export const assignPersonalTokenAndIncrementUsage = async (userId: string, token
  * @param token The token string to assign.
  * @returns The updated user object on success.
  */
-export const assignImagenTokenAndIncrementUsage = async (userId: string, token: string): Promise<{ success: true, user: User } | { success: false, message: string }> => {
+export const assignImagenTokenAndIncrementUsage = async (userId: string, token: string): Promise<{ success: true; user: User } | { success: false, message: string }> => {
     try {
         const { data: rpcSuccess, error: rpcError } = await supabase.rpc(
             'increment_imagen_token_if_available', 
@@ -734,18 +735,35 @@ export const incrementVideoUsage = async (user: User): Promise<{ success: true; 
 };
 
 /**
- * Updates the last seen timestamp for a given user. This is a fire-and-forget
+ * Detects the user's device type from the User Agent string.
+ * This is exported so App.tsx can use it for smart server routing.
+ */
+export const getDeviceOS = (): string => {
+    const ua = navigator.userAgent;
+    if (/iPad|iPhone|iPod/.test(ua)) return 'iOS';
+    if (/mac/i.test(ua)) return 'Mac';
+    if (/android/i.test(ua)) return 'Android';
+    if (/windows phone/i.test(ua)) return 'Windows Phone';
+    if (/win/i.test(ua)) return 'Windows PC';
+    if (/linux/i.test(ua)) return 'Linux';
+    return 'Other';
+};
+
+/**
+ * Updates the last seen timestamp and device info for a given user. This is a fire-and-forget
  * operation used for tracking user activity.
  * @param {string} userId - The ID of the user to update.
  */
 export const updateUserLastSeen = async (userId: string): Promise<void> => {
     try {
+        const deviceType = getDeviceOS();
         // FIX: Use the correct table name 'users'.
         const { error } = await supabase
             .from('users')
             .update({ 
                 last_seen_at: new Date().toISOString(),
-                app_version: APP_VERSION 
+                app_version: APP_VERSION,
+                last_device: deviceType
             })
             .eq('id', userId);
         

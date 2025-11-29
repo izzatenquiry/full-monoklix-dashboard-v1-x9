@@ -574,6 +574,9 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ language }) => 
                                         Version
                                     </th>
                                     <th scope="col" className="px-6 py-3">
+                                        Device
+                                    </th>
+                                    <th scope="col" className="px-6 py-3">
                                         Server
                                     </th>
                                     <th scope="col" className="px-6 py-3">
@@ -633,6 +636,9 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ language }) => 
                                                 <td className="px-6 py-4">
                                                     {user.appVersion || '-'}
                                                 </td>
+                                                <td className="px-6 py-4 text-xs font-mono text-neutral-600 dark:text-neutral-300">
+                                                    {user.lastDevice || '-'}
+                                                </td>
                                                 <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-300">
                                                     {user.proxyServer ? user.proxyServer.replace('https://', '').replace('.monoklix.com', '') : '-'}
                                                 </td>
@@ -677,7 +683,7 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ language }) => 
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={11} className="text-center py-10">
+                                        <td colSpan={12} className="text-center py-10">
                                             {usersWithoutAdmin.length > 0 ? (
                                                 <div>
                                                     <p className="mt-2 font-semibold">No users found.</p>

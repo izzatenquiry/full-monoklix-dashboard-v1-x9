@@ -181,17 +181,22 @@ export const generateVideo = async (
     try {
         let processedImage = image;
 
-        if (image && (aspectRatio === '16:9' || aspectRatio === '9:16')) {
+        // Force crop/resize for ALL images to ensure they meet size and ratio requirements.
+        // This prevents mobile crashes due to large image payloads.
+        if (image) {
             try {
-                addLogEntry({ model, prompt: "Cropping reference image...", output: `Cropping to ${aspectRatio}...`, tokenCount: 0, status: "Success" });
-                const croppedBase64 = await cropImageToAspectRatio(image.imageBytes, aspectRatio);
+                // Cast string to specific union type as we know it's one of the valid ones from UI
+                const targetRatio = (aspectRatio === '16:9' || aspectRatio === '9:16') ? aspectRatio : '9:16';
+                
+                addLogEntry({ model, prompt: "Processing reference image...", output: `Resizing/Cropping to ${targetRatio}...`, tokenCount: 0, status: "Success" });
+                const croppedBase64 = await cropImageToAspectRatio(image.imageBytes, targetRatio);
                 processedImage = {
                     ...image,
                     imageBytes: croppedBase64,
                 };
             } catch (cropError) {
-                console.error("Image cropping failed, proceeding with original image.", cropError);
-                addLogEntry({ model, prompt: "Image cropping failed", output: "Proceeding with original image.", tokenCount: 0, status: "Error", error: cropError instanceof Error ? cropError.message : String(cropError) });
+                console.error("Image processing failed, proceeding with original image.", cropError);
+                addLogEntry({ model, prompt: "Image processing failed", output: "Proceeding with original image.", tokenCount: 0, status: "Error", error: cropError instanceof Error ? cropError.message : String(cropError) });
             }
         }
 

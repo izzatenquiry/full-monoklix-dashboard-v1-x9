@@ -57,7 +57,8 @@ const safeJson = async (res: Response) => {
 const downloadContent = (url: string, type: 'image' | 'video', filenamePrefix: string) => {
     const link = document.createElement('a');
     link.href = type === 'image' && !url.startsWith('http') ? `data:image/png;base64,${url}` : url;
-    link.download = `${filenamePrefix}-${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
+    link.download = `${filenamePrefix}-${Date.now()}.png`;
+    if (type === 'video') link.download = `${filenamePrefix}-${Date.now()}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -350,11 +351,21 @@ const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({ currentUser, 
                 // Step 1: Upload
                 for (let i = 0; i < validImages.length; i++) {
                     const img = validImages[i];
-                    appendLog(server.id, `Uploading image ${i + 1}/${validImages.length}...`);
+                    appendLog(server.id, `Processing and Uploading image ${i + 1}/${validImages.length}...`);
+                    
+                    // Optimization: Resize/Crop image before upload to prevent mobile crash
+                    let processedBase64 = img.base64;
+                    try {
+                        // Crop to portrait (9:16) to match the I2I prompt output expectation
+                        processedBase64 = await cropImageToAspectRatio(img.base64, '9:16');
+                    } catch (e) {
+                        console.warn('Failed to crop image', e);
+                    }
+
                     const uploadRes = await fetch(`${server.url}/api/imagen/upload`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                        body: JSON.stringify({ imageInput: { rawImageBytes: img.base64, mimeType: img.mimeType } })
+                        body: JSON.stringify({ imageInput: { rawImageBytes: processedBase64, mimeType: img.mimeType } })
                     });
                     const uploadData = await safeJson(uploadRes);
                     if (!uploadRes.ok) throw new Error(uploadData.error?.message || `Upload failed`);

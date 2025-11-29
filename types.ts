@@ -1,3 +1,4 @@
+
 import type { ComponentType } from 'react';
 
 // FIX: Add Language type for internationalization.
@@ -18,7 +19,8 @@ export type View =
   // Settings & Admin
   | 'settings'
   | 'api-generator'
-  | 'master-dashboard';
+  | 'master-dashboard'
+  | 'ugc-gen';
 
 export interface NavItem {
   id: View | 'logout' | 'support-group';
@@ -102,6 +104,7 @@ export interface User {
   personalAuthToken?: string | null;
   proxyServer?: string | null;
   batch_02?: string | null;
+  lastDevice?: string | null;
 }
 
 export type LoginResult = { success: true; user: User } | { success: false; message: string };

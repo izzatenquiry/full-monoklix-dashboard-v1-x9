@@ -116,7 +116,7 @@ const ProductReviewView: React.FC<ProductReviewViewProps> = ({ onReEdit, onCreat
   // New video generation settings state
   const videoModel = MODELS.videoGenerationDefault;
   const [videoAspectRatio, setVideoAspectRatio] = useState('9:16');
-  const [videoResolution, setVideoResolution] = useState('720p');
+  const [videoResolution, setVideoResolution] = useState('1080p');
   const [videoLanguage, setVideoLanguage] = useState<string>("English");
   
   // New audio settings state
@@ -762,6 +762,7 @@ const ProductReviewView: React.FC<ProductReviewViewProps> = ({ onReEdit, onCreat
     setVoiceoverMode('speak');
     setVoiceoverMood('Normal');
     setMusicStyle('Pop');
+    setVideoResolution('1080p');
     
     sessionStorage.removeItem(SESSION_KEY);
   }, []);

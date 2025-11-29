@@ -1,19 +1,18 @@
 import { v4 as uuidv4 } from 'uuid';
 import { executeProxiedRequest } from './apiClient';
 import { generateVideoWithVeo3 } from './veo3Service';
+import { cropImageToAspectRatio } from './imageService';
 
 // This map translates user-friendly aspect ratios to the API-specific enums.
 const aspectRatioApiMap: { [key: string]: string } = {
     "1:1": "IMAGE_ASPECT_RATIO_SQUARE",
     "16:9": "IMAGE_ASPECT_RATIO_LANDSCAPE",
-    "9:16": "IMAGE_ASPECT_RATIO_PORTRAIT",
-    "4:3": "IMAGE_ASPECT_RATIO_FOUR_THREE",
-    "3:4": "IMAGE_ASPECT_RATIO_THREE_FOUR"
+    "9:16": "IMAGE_ASPECT_RATIO_PORTRAIT"
 };
 
 export interface ImagenConfig {
   sampleCount?: number;
-  aspectRatio?: '1:1' | '9:16' | '16:9' | '3:4' | '4:3';
+  aspectRatio?: '1:1' | '9:16' | '16:9';
   negativePrompt?: string;
   seed?: number;
   authToken?: string;
@@ -171,9 +170,19 @@ export const editOrComposeWithImagen = async (request: {
     for (let i = 0; i < request.images.length; i++) {
         const img = request.images[i];
         
+        // Force processing of the image (resize/crop) to prevent mobile crashes due to large payloads.
+        // If config.aspectRatio is set, crop to that. Otherwise default to square or original (1:1 is safest default for center crop logic).
+        let processedBase64 = img.base64;
+        try {
+            console.log(`🎨 [Imagen Service] Processing input image ${i + 1} (resize/crop)...`);
+            processedBase64 = await cropImageToAspectRatio(img.base64, request.config.aspectRatio || '1:1');
+        } catch (cropError) {
+            console.warn(`⚠️ [Imagen Service] Failed to process image ${i + 1}, using original.`, cropError);
+        }
+
         // Use consistentToken if we have one from a previous successful upload in this loop
         const { mediaId, successfulToken } = await uploadImageForImagen(
-            img.base64, 
+            processedBase64, 
             img.mimeType, 
             consistentToken, 
             onStatusUpdate,

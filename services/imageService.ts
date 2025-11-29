@@ -1,12 +1,12 @@
 
 /**
- * Crop image to target aspect ratio (9:16 for portrait, 16:9 for landscape)
+ * Crop image to target aspect ratio (9:16, 16:9, 1:1)
  * Uses center crop to maintain focus on main subject.
  * Also resizes the image to a safe maximum dimension to prevent memory crashes on mobile.
  */
 export const cropImageToAspectRatio = async (
   imageBase64: string,
-  targetAspectRatio: '9:16' | '16:9'
+  targetAspectRatio: '9:16' | '16:9' | '1:1'
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -28,7 +28,13 @@ export const cropImageToAspectRatio = async (
       let cropHeight = height;
 
       // 1. Calculate Crop Dimensions
-      const targetRatio = targetAspectRatio === '16:9' ? 16 / 9 : 9 / 16;
+      let targetRatio = 1;
+      switch (targetAspectRatio) {
+          case '16:9': targetRatio = 16 / 9; break;
+          case '9:16': targetRatio = 9 / 16; break;
+          case '1:1': default: targetRatio = 1; break;
+      }
+
       const imgRatio = width / height;
       let didCrop = false;
 
@@ -78,8 +84,6 @@ export const cropImageToAspectRatio = async (
       ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, finalWidth, finalHeight);
 
       // Convert to PNG
-      // Using 0.9 quality for JPEG might be safer for size, but PNG is required for transparency (if any).
-      // We stick to PNG but the resizing above solves the memory issue.
       const pngDataUrl = canvas.toDataURL('image/png');
 
       // Extract base64 (remove data:image/png;base64, prefix)

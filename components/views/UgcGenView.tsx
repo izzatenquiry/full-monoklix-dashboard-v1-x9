@@ -50,9 +50,7 @@ const PRESET_PROMPTS = {
 const aspectRatioMap: { [key: string]: string } = {
   '9:16': 'IMAGE_ASPECT_RATIO_PORTRAIT',
   '16:9': 'IMAGE_ASPECT_RATIO_LANDSCAPE',
-  '1:1': 'IMAGE_ASPECT_RATIO_SQUARE',
-  '4:3': 'IMAGE_ASPECT_RATIO_FOUR_THREE',
-  '3:4': 'IMAGE_ASPECT_RATIO_THREE_FOUR',
+  '1:1': 'IMAGE_ASPECT_RATIO_SQUARE'
 };
 
 // Helper to safely parse JSON
@@ -422,11 +420,22 @@ const UgcGeneratorView: React.FC<UgcGeneratorViewProps> = ({ currentUser, langua
                 const mediaIds: string[] = [];
                 for (let i = 0; i < validImages.length; i++) {
                     const img = validImages[i];
-                    appendLog(server.id, `Uploading image ${i + 1}/${validImages.length}...`);
+                    appendLog(server.id, `Processing and Uploading image ${i + 1}/${validImages.length}...`);
+                    
+                    // Optimization: Resize/Crop image before upload to prevent mobile crash
+                    let processedBase64 = img.base64;
+                    try {
+                        // Use user's selected aspect ratio for cropping to ensure consistency
+                        // creativeState.aspectRatio is typically '9:16', '16:9', or '1:1'
+                        processedBase64 = await cropImageToAspectRatio(img.base64, creativeState.aspectRatio);
+                    } catch (e) {
+                        console.warn('Failed to crop image', e);
+                    }
+
                     const uploadRes = await fetch(`${server.url}/api/imagen/upload`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                        body: JSON.stringify({ imageInput: { rawImageBytes: img.base64, mimeType: img.mimeType } })
+                        body: JSON.stringify({ imageInput: { rawImageBytes: processedBase64, mimeType: img.mimeType } })
                     });
                     const uploadData = await safeJson(uploadRes);
                     if (!uploadRes.ok) throw new Error(uploadData.error?.message || `Upload failed`);

@@ -63,7 +63,7 @@ const CreativeDirectionPanel: React.FC<CreativeDirectionPanelProps> = ({ state, 
                     <SelectControl label="Film Simulation" value={state.filmSim} onChange={val => handleChange('filmSim', val)} options={filmSimOptions} />
                     {showEffect && <SelectControl label="Visual Effect" value={state.effect} onChange={val => handleChange('effect', val)} options={effectOptions} />}
                     {/* FIX: Conditionally render aspect ratio selector. */}
-                    {showAspectRatio && <SelectControl label="Aspect Ratio" value={state.aspectRatio} onChange={val => handleChange('aspectRatio', val)} options={['9:16', '1:1', '16:9', '4:3', '3:4']} />}
+                    {showAspectRatio && <SelectControl label="Aspect Ratio" value={state.aspectRatio} onChange={val => handleChange('aspectRatio', val)} options={['9:16', '1:1', '16:9']} />}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">AI Creativity Level ({state.creativityLevel})</label>

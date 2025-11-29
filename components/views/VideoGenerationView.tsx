@@ -82,7 +82,7 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const [referenceImage, setReferenceImage] = useState<ImageData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [resolution, setResolution] = useState("720p");
+  const [resolution, setResolution] = useState("1080p");
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [imageUploadKey, setImageUploadKey] = useState(Date.now());
 
@@ -423,7 +423,7 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
     setError(null);
     setReferenceImage(null);
     setPreviewUrl(null);
-    setResolution("720p");
+    setResolution("1080p");
     setAspectRatio("9:16");
     setIncludeCaptions('No');
     setIncludeVoiceover('No');
@@ -450,7 +450,7 @@ const VideoGenerationView: React.FC<VideoGenerationViewProps> = ({ preset, clear
                 <div>
                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Aspect Ratio</label>
                      <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:outline-none transition">
-                        {["9:16", "3:4"].map(ar => <option key={ar} value={ar}>{ar}</option>)}
+                        {["9:16"].map(ar => <option key={ar} value={ar}>{ar}</option>)}
                     </select>
                 </div>
                 <div>

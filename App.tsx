@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // FIX: Explicitly import UserStatus as a type to prevent runtime import errors if it's only a type definition.
 import { type View, type User, type BatchProcessorPreset, type Language, type UserStatus, type Announcement } from './types';
@@ -14,7 +13,7 @@ import WelcomeAnimation from './components/WelcomeAnimation';
 import LibraryView from './components/views/LibraryView';
 import { MenuIcon, LogoIcon, XIcon, SunIcon, MoonIcon, CheckCircleIcon, AlertTriangleIcon, PartyPopperIcon, RefreshCwIcon, UsersIcon, ServerIcon, ShieldCheckIcon, TerminalIcon, SparklesIcon, ChevronRightIcon, AppleIcon } from './components/Icons';
 // FIX: Moved getAvailableServersForUser to userService.ts to fix circular dependency and added it to imports here.
-import { signOutUser, logActivity, getVeoAuthTokens, getImagenAuthTokens, getSharedMasterApiKey, updateUserLastSeen, assignPersonalTokenAndIncrementUsage, saveUserPersonalAuthToken, getServerUsageCounts, updateUserProxyServer, updateTokenStatusToExpired, getAvailableServersForUser } from './services/userService';
+import { signOutUser, logActivity, getVeoAuthTokens, getImagenAuthTokens, getSharedMasterApiKey, updateUserLastSeen, assignPersonalTokenAndIncrementUsage, saveUserPersonalAuthToken, getServerUsageCounts, updateUserProxyServer, updateTokenStatusToExpired, getAvailableServersForUser, getDeviceOS } from './services/userService';
 import { createChatSession, streamChatResponse } from './services/geminiService';
 import Spinner from './components/common/Spinner';
 import { loadData, saveData } from './services/indexedDBService';
@@ -37,6 +36,7 @@ import { getTranslations } from './services/translations';
 import { getProxyServers, getAnnouncements } from './services/contentService';
 import ApiGeneratorView from './components/views/ApiGeneratorView';
 import MasterDashboardView from './components/views/MasterDashboardView';
+import UgcGeneratorView from './components/views/UgcGenView';
 
 
 interface VideoGenPreset {
@@ -598,50 +598,76 @@ const App: React.FC = () => {
     setJustLoggedIn(true);
   };
 
-    // FIX: Removed local definition of getAvailableServersForUser. It's now imported from userService.
-    
+    // Helper logic to find the best server automatically
+    const performSmartServerSelection = async (user: User) => {
+        try {
+            const [serverCounts, serversForUser] = await Promise.all([
+                getServerUsageCounts(),
+                getAvailableServersForUser(user),
+            ]);
+
+            const deviceOS = getDeviceOS();
+            const isAppleDevice = deviceOS === 'iOS' || deviceOS === 'Mac';
+            let candidateServers = serversForUser;
+
+            if (isAppleDevice) {
+                // For Apple devices, prioritize s1 and s6 if available
+                const appleOptimizedServers = ['https://s1.monoklix.com', 'https://s6.monoklix.com'];
+                // Intersect the optimized list with what the user is allowed to access
+                candidateServers = serversForUser.filter(s => appleOptimizedServers.includes(s));
+                
+                // Fallback: If for some reason s1/s6 are not in the user's list (unlikely unless disabled), revert to full list
+                if (candidateServers.length === 0) {
+                    console.warn('[Smart Routing] No Apple-optimized servers available for this user. Falling back to standard pool.');
+                    candidateServers = serversForUser;
+                }
+            }
+
+            if (candidateServers.length === 0) {
+                throw new Error("No available servers found for this user account.");
+            }
+
+            // Find the server with the minimum usage within the candidate pool
+            const bestServer = candidateServers.reduce((leastBusy, currentServer) => {
+                const leastBusyUsage = serverCounts[leastBusy] || 0;
+                const currentUsage = serverCounts[currentServer] || 0;
+                return currentUsage < leastBusyUsage ? currentServer : leastBusy;
+            }, candidateServers[0]);
+
+            const serverName = bestServer.replace('https://', '').replace('.monoklix.com', '').toUpperCase();
+            console.log(`[Smart Routing] Device: ${deviceOS} | Pool: [${candidateServers.map(s => s.replace('https://', '').replace('.monoklix.com', '')).join(', ')}] | Selected: ${serverName} (${serverCounts[bestServer] || 0} users)`);
+
+            sessionStorage.setItem('selectedProxyServer', bestServer);
+            await updateUserProxyServer(user.id, bestServer);
+            
+            return bestServer;
+
+        } catch (error) {
+            console.warn('[Smart Routing] Logic failed, falling back to random selection.', error);
+            // Fallback logic
+            let fallbackServers = ['https://s1.monoklix.com', 'https://s2.monoklix.com', 'https://s3.monoklix.com', 'https://s4.monoklix.com', 'https://s5.monoklix.com'];
+            if (user.batch_02 === 'batch_02') {
+                fallbackServers = ['https://s6.monoklix.com', 'https://s7.monoklix.com', 'https://s8.monoklix.com', 'https://s9.monoklix.com'];
+            }
+            const fallback = fallbackServers[Math.floor(Math.random() * fallbackServers.length)];
+            
+            sessionStorage.setItem('selectedProxyServer', fallback);
+            await updateUserProxyServer(user.id, fallback);
+            return fallback;
+        }
+    };
+
     // Effect to auto-select a server if none is present in the session (e.g., after clearing session storage)
     useEffect(() => {
         const autoSelectServerIfNeeded = async () => {
             const serverInSession = sessionStorage.getItem('selectedProxyServer');
             const sessionStartTime = sessionStorage.getItem('session_started_at');
-            // Only run if it's NOT a recent login/load (give other logic 3 seconds to run)
+            // Only run if it's NOT a recent login/load (give login logic 3 seconds to run)
             const isRecentSessionStart = sessionStartTime && (new Date().getTime() - new Date(sessionStartTime).getTime()) < 3000;
 
             if (currentUser && !serverInSession && !isRecentSessionStart && window.location.hostname !== 'localhost') {
-                console.log("[Auto-Select Server] No server found in session. Attempting to auto-connect to the least busy server.");
-                try {
-                    const [serverCounts, serversForUser] = await Promise.all([
-                        getServerUsageCounts(),
-                        getAvailableServersForUser(currentUser),
-                    ]);
-
-                    if (serversForUser.length === 0) throw new Error("No available servers found for this user account.");
-
-                    const leastBusyServer = serversForUser.reduce((leastBusy, currentServer) => {
-                        const leastBusyUsage = serverCounts[leastBusy] || 0;
-                        const currentUsage = serverCounts[currentServer] || 0;
-                        return currentUsage < leastBusyUsage ? currentServer : leastBusy;
-                    }, serversForUser[0]);
-
-                    sessionStorage.setItem('selectedProxyServer', leastBusyServer);
-                    await updateUserProxyServer(currentUser.id, leastBusyServer);
-
-                    const serverName = leastBusyServer.replace('https://', '').replace('.monoklix.com', '');
-                    console.log(`[Auto-Select Server] Silently connected to server ${serverName.toUpperCase()} with ${serverCounts[leastBusyServer] || 0} users.`);
-                } catch (error) {
-                    console.warn('[Auto-Select Server] Failed to find least busy server, connecting to a random fallback.', error);
-                    let fallbackServers = ['https://s1.monoklix.com', 'https://s2.monoklix.com', 'https://s3.monoklix.com', 'https://s4.monoklix.com', 'https://s5.monoklix.com'];
-                    if (currentUser.batch_02 === 'batch_02') {
-                        fallbackServers = ['https://s6.monoklix.com', 'https://s7.monoklix.com', 'https://s8.monoklix.com', 'https://s9.monoklix.com'];
-                    }
-                    const fallback = fallbackServers[Math.floor(Math.random() * fallbackServers.length)];
-                    
-                    sessionStorage.setItem('selectedProxyServer', fallback);
-                    await updateUserProxyServer(currentUser.id, fallback);
-                    const serverName = fallback.replace('https://', '').replace('.monoklix.com', '');
-                    console.log(`[Auto-Select Server] Silently connected to fallback server ${serverName.toUpperCase()}.`);
-                }
+                console.log("[Auto-Select Server] No server found in session. Running smart routing.");
+                await performSmartServerSelection(currentUser);
             }
         };
         autoSelectServerIfNeeded();
@@ -650,7 +676,7 @@ const App: React.FC = () => {
   
     const handleServerSelected = async (serverUrl: string) => {
         if (!currentUser) return;
-        console.log(`[Session] User selected server: ${serverUrl}`);
+        console.log(`[Session] User manually selected server: ${serverUrl}`);
         sessionStorage.setItem('selectedProxyServer', serverUrl);
 
         if (serverModalPurpose === 'change') {
@@ -661,7 +687,7 @@ const App: React.FC = () => {
 
             alert('Server changed successfully! The application will now reload.');
             window.location.reload();
-        } else { // 'login'
+        } else { // 'login' - THIS PATH IS NOW RARELY USED DUE TO AUTO-LOGIN LOGIC
             await updateUserProxyServer(currentUser.id, serverUrl);
             setShowServerModal(false);
             proceedWithPostLoginFlow(currentUser);
@@ -704,25 +730,28 @@ const App: React.FC = () => {
         console.log("[Session] Local Development: Skipping server selection.");
         proceedWithPostLoginFlow(user);
     } else {
-        console.log("[Session] Waiting for user to select server...");
+        // AUTOMATIC SMART ROUTING
+        // Instead of showing the modal, calculate the best server and assign it immediately.
         try {
-            const [serverCounts, serversToShow] = await Promise.all([
-                getServerUsageCounts(),
-                getAvailableServersForUser(user),
-            ]);
-            setServerOptions({ servers: serversToShow, usage: serverCounts });
-            setShowServerModal(true);
-        } catch (error) {
-            console.error('[Session] Error during server selection setup. Using a random fallback server.', error);
-            let fallbackServers = ['https://s1.monoklix.com', 'https://s2.monoklix.com', 'https://s3.monoklix.com', 'https://s4.monoklix.com', 'https://s5.monoklix.com'];
-            if (user.batch_02 === 'batch_02') {
-                fallbackServers = ['https://s6.monoklix.com', 'https://s7.monoklix.com', 'https://s8.monoklix.com', 'https://s9.monoklix.com'];
-            }
-            const fallbackServer = fallbackServers[Math.floor(Math.random() * fallbackServers.length)];
-
-            sessionStorage.setItem('selectedProxyServer', fallbackServer);
-            await updateUserProxyServer(user.id, fallbackServer);
+            await performSmartServerSelection(user);
             proceedWithPostLoginFlow(user);
+        } catch (error) {
+            console.error('[Session] Smart routing failed. Opening manual selection as fallback.', error);
+            // Fallback to manual selection if auto-logic crashes hard
+            try {
+                const [serverCounts, serversToShow] = await Promise.all([
+                    getServerUsageCounts(),
+                    getAvailableServersForUser(user),
+                ]);
+                setServerOptions({ servers: serversToShow, usage: serverCounts });
+                setShowServerModal(true);
+            } catch (fallbackError) {
+                // If even manual fetch fails, force a default
+                const fallbackServer = 'https://s1.monoklix.com';
+                sessionStorage.setItem('selectedProxyServer', fallbackServer);
+                await updateUserProxyServer(user.id, fallbackServer);
+                proceedWithPostLoginFlow(user);
+            }
         }
     }
   };
@@ -800,6 +829,8 @@ const App: React.FC = () => {
                     language={language}
                     setLanguage={setLanguage}
                  />;
+      case 'ugc-gen':
+          return <UgcGeneratorView currentUser={currentUser!} language={language} onUserUpdate={handleUserUpdate} />;
       default:
         // FIX: Add missing 'language' prop
         return <ECourseView currentUser={currentUser!} language={language} />;
@@ -839,7 +870,7 @@ const App: React.FC = () => {
   let isBlocked = false;
   let blockMessage = { title: T.accessDenied, body: "" };
 
-  const adminOnlyViews: View[] = ['api-generator', 'master-dashboard'];
+  const adminOnlyViews: View[] = ['api-generator', 'master-dashboard', 'ugc-gen'];
 
   if (adminOnlyViews.includes(activeView) && currentUser.role !== 'admin') {
       isBlocked = true;
